@@ -1,7 +1,7 @@
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use zbus::{Connection, dbus_proxy, Error};
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum BatteryMode {
     Lifespan,
     Balanced,
@@ -9,11 +9,28 @@ pub enum BatteryMode {
 }
 
 impl BatteryMode {
-    fn to_values(&self) -> (&'static str, u8) {
+    pub fn from_str(str: &str) -> Self {
+        match str {
+            "Lifespan" => BatteryMode::Lifespan,
+            "Lifespan mode" => BatteryMode::Lifespan,
+            "Balanced" => BatteryMode::Balanced,
+            "Balanced mode" => BatteryMode::Balanced,
+            _ => BatteryMode::Full
+        }
+    }
+    pub fn to_str(&self) -> &str {
         match self {
-            BatteryMode::Lifespan => ("Lifespan mode", 60),
-            BatteryMode::Balanced => ("Balanced mode", 80),
-            BatteryMode::Full => ("Full capacity mode", 100),
+            BatteryMode::Lifespan => "Lifespan mode",
+            BatteryMode::Balanced => "Balanced mode",
+            BatteryMode::Full => "Full capacity mode",
+        }
+    }
+
+    pub fn to_limit(&self) -> u8 {
+        match self {
+            BatteryMode::Lifespan => 60,
+            BatteryMode::Balanced => 80,
+            BatteryMode::Full => 100,
         }
     }
 }
@@ -24,16 +41,16 @@ impl BatteryMode {
     default_path = "/com/github/claaj/Corte"
 )]
 trait Limiter {
-    async fn set_battery_limit(&self, mode: &str, new_limit: u8) -> Result<String, Error>;
+    async fn set_battery_limit(&self, mode: &str) -> Result<String, Error>;
 }
 
 pub fn connection(mode: BatteryMode) -> Result<String, Error> {
-    let (mode, new_limit) = mode.to_values();
+    let mode_str= mode.to_str();
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let corte_connection = Connection::session().await?;
         let corte_proxy = LimiterProxy::new(&corte_connection).await?;
-        corte_proxy.set_battery_limit(mode, new_limit).await
+        corte_proxy.set_battery_limit(mode_str).await
     })
 }

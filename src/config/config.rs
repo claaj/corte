@@ -7,6 +7,7 @@ use config_better::Config;
 use log::{error, info, warn};
 use serde_derive::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
+use crate::client::client::BatteryMode;
 
 const APP_NAME: &'static str = "corte";
 const FILE_CONFIG_NAME: &'static str = "config.toml";
@@ -18,28 +19,14 @@ pub struct CorteConfig {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Battery {
-    pub limit: u8
-}
-
-impl Battery {
-    fn check_limit(&mut self) {
-        if self.limit > 100 {
-            self.limit = 100;
-        }
-    }
+    pub mode: BatteryMode
 }
 
 impl Default for Battery {
     fn default() -> Self {
         Battery {
-            limit: 100
+            mode: BatteryMode::Full
         }
-    }
-}
-
-impl CorteConfig {
-    fn check_attributes(&mut self) {
-        self.battery.check_limit();
     }
 }
 
@@ -60,7 +47,7 @@ pub async fn read_config_file() -> CorteConfig {
         Err(_) => create_default_file().await,
     };
 
-    let mut config_toml = match toml::from_str(&file_content) {
+    match toml::from_str(&file_content) {
         Ok(cfg) => {
             info!("Config file was successfully loaded");
             cfg
@@ -70,10 +57,7 @@ pub async fn read_config_file() -> CorteConfig {
             info!("Using default config.");
             CorteConfig::default()
         }
-    };
-
-    config_toml.check_attributes();
-    config_toml
+    }
 }
 
 pub fn get_config_file_path() -> PathBuf {

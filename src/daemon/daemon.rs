@@ -3,6 +3,7 @@ use std::future::pending;
 use log::{error, info};
 use tokio::fs::write;
 use zbus::{ConnectionBuilder, dbus_interface};
+use crate::client::client::BatteryMode;
 use crate::config::config::{CorteConfig, get_config_file_path, read_config_file, write_config_file};
 use crate::daemon::batteries::batteries::get_device_batteries;
 
@@ -13,9 +14,12 @@ struct Limiter;
 
 #[dbus_interface(name = "com.github.claaj.Corte.Limiter")]
 impl Limiter {
-    async fn set_battery_limit(&self, mode: &str, new_limit: u8) -> String {
+    async fn set_battery_limit(&self, mode: &str) -> String {
         let mut config = read_config_file().await;
-        config.battery.limit = new_limit;
+        let battery_mode = BatteryMode::from_str(mode);
+        config.battery.mode = battery_mode;
+
+        let new_limit = config.battery.mode.to_limit();
 
         let msg_string = match change_battery_limit(&config, &get_device_batteries().unwrap_or_default()).await {
             Ok(_) => format!("✅ {} activated! Limit set to: {}%.", mode, new_limit),
@@ -53,11 +57,12 @@ pub async fn daemon() -> Result<(), Box<dyn Error>> {
 }
 
 async fn change_battery_limit(config: &CorteConfig, batteries: &Vec<String>) -> Result<(), Box<dyn Error>> {
-    info!("Changing battery limit to {}%.", config.battery.limit);
+    let new_limit = config.battery.mode.to_limit();
+    info!("Changing battery limit to {}%.", new_limit);
     write_config_file(&get_config_file_path(), &toml::to_string(&config)?).await?;
 
     for battery in batteries {
-        write(battery, format!("{}", &config.battery.limit).as_bytes()).await?;
+        write(battery, format!("{}", new_limit).as_bytes()).await?;
     }
 
     Ok(())
