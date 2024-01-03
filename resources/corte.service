@@ -1,0 +1,10 @@
+[Unit]
+Description=Corte daemon - Battery charging limiter
+
+[Service]
+Type=dbus
+BusName=com.github.claaj.Corte
+ExecStart=/usr/bin/corte daemon
+
+[Install]
+WantedBy=default.target
