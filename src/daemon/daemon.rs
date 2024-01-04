@@ -1,11 +1,9 @@
 use std::error::Error;
-use std::future::pending;
 use log::{error, info};
-use tokio::fs::write;
 use zbus::{ConnectionBuilder, dbus_interface};
-use crate::client::client::BatteryMode;
-use crate::config::config::{CorteConfig, get_config_file_path, read_config_file, write_config_file};
-use crate::daemon::batteries::batteries::get_device_batteries;
+use crate::battery::battery::{battery_status_watcher, change_battery_limit, check_battery_support};
+use crate::battery::mode::BatteryMode;
+use crate::config::config::read_config_file;
 
 const CONNECTION_NAME: &'static str = "com.github.claaj.Corte";
 const DBUS_INTERFACE: &'static str = "/com/github/claaj/Corte";
@@ -18,53 +16,35 @@ impl Limiter {
         let mut config = read_config_file().await;
         let battery_mode = BatteryMode::from_str(mode);
         config.battery.mode = battery_mode;
-
         let new_limit = config.battery.mode.to_limit();
 
-        let msg_string = match change_battery_limit(&config, &get_device_batteries().unwrap_or_default()).await {
-            Ok(_) => format!("✅ {} activated! Limit set to: {}%.", mode, new_limit),
-            Err(_) => format!("❌ Failed to activate {}.", mode),
-        };
-
-        info!("{}", &msg_string);
-        msg_string
+        match change_battery_limit(&config, new_limit).await {
+            Ok(_) => {
+                let ok_msg = format!("✅ {} activated! Limit set to: {}%.", mode, new_limit);
+                info!("{}", &ok_msg);
+                ok_msg
+            },
+            Err(_) => {
+                let err_msg = format!("❌ Failed to activate {}.", mode);
+                error!("{}", &err_msg);
+                err_msg
+            }
+        }
     }
 }
 
 pub async fn daemon() -> Result<(), Box<dyn Error>> {
-    match get_device_batteries() {
-        Some(batteries) => {
-            info!("Found {} battery/batteries.", batteries.len());
-            info!("Loading config file.");
-            let config = read_config_file().await;
+    if check_battery_support().await {
+        let _connection = ConnectionBuilder::session()?
+            .name(CONNECTION_NAME)?
+            .serve_at(DBUS_INTERFACE, Limiter)?
+            .build()
+            .await?;
 
-            let _connection = ConnectionBuilder::session()?
-                .name(CONNECTION_NAME)?
-                .serve_at(DBUS_INTERFACE, Limiter)?
-                .build()
-                .await?;
-
-            change_battery_limit(&config, &batteries).await?;
-
-            info!("🫡 Waiting for a signal to change battery limit.");
-            pending::<()>().await;
-
-        },
-        None => error!("This computer doesn't have any battery.")
+        battery_status_watcher().await;
+    } else {
+        error!("This computer doesn't support setting battery charging limit.")
     }
 
     Ok(())
 }
-
-async fn change_battery_limit(config: &CorteConfig, batteries: &Vec<String>) -> Result<(), Box<dyn Error>> {
-    let new_limit = config.battery.mode.to_limit();
-    info!("Changing battery limit to {}%.", new_limit);
-    write_config_file(&get_config_file_path(), &toml::to_string(&config)?).await?;
-
-    for battery in batteries {
-        write(battery, format!("{}", new_limit).as_bytes()).await?;
-    }
-
-    Ok(())
-}
-

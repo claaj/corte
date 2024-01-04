@@ -4,6 +4,7 @@ mod daemon;
 mod config;
 mod client;
 mod gui;
+mod battery;
 
 use crate::cli::cli::*;
 use crate::menu::menu::cli_menu;
@@ -17,7 +18,7 @@ fn main() {
     env_logger::builder()
         .filter_level(log::LevelFilter::Debug)
         .format_target(false)
-        .format_timestamp(None)
+        .format_timestamp_secs()
         .init();
 
     let rt = tokio::runtime::Runtime::new().unwrap();

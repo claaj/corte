@@ -1,5 +1,6 @@
 use menu_rs::*;
-use crate::client::client::{BatteryMode, connection};
+use crate::battery::mode::BatteryMode;
+use crate::client::client::connection;
 
 pub fn cli_menu() {
     let menu = Menu::new(vec![

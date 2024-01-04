@@ -7,7 +7,7 @@ use config_better::Config;
 use log::{error, info, warn};
 use serde_derive::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
-use crate::client::client::BatteryMode;
+use crate::battery::mode::BatteryMode;
 
 const APP_NAME: &'static str = "corte";
 const FILE_CONFIG_NAME: &'static str = "config.toml";
@@ -41,7 +41,6 @@ impl Default for CorteConfig {
 pub async fn read_config_file() -> CorteConfig {
     let config_file_path = get_config_file_path();
 
-    info!("Searching config in {:?}.", config_file_path);
     let file_content = match fs::read_to_string(&config_file_path).await {
         Ok(content) => content,
         Err(_) => create_default_file().await,
@@ -49,7 +48,6 @@ pub async fn read_config_file() -> CorteConfig {
 
     match toml::from_str(&file_content) {
         Ok(cfg) => {
-            info!("Config file was successfully loaded");
             cfg
         },
         Err(_) => {
