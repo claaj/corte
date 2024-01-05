@@ -1,7 +1,8 @@
 use std::error::Error;
+use std::future::pending;
 use log::{error, info};
 use zbus::{ConnectionBuilder, dbus_interface};
-use crate::battery::battery::{battery_status_watcher, change_battery_limit, check_battery_support};
+use crate::battery::battery::{change_battery_limit, check_battery_support};
 use crate::battery::mode::BatteryMode;
 use crate::config::config::read_config_file;
 
@@ -18,7 +19,7 @@ impl Limiter {
         config.battery.mode = battery_mode;
         let new_limit = config.battery.mode.to_limit();
 
-        match change_battery_limit(&config, new_limit).await {
+        match change_battery_limit(&config).await {
             Ok(_) => {
                 let ok_msg = format!("✅ {} activated! Limit set to: {}%.", mode, new_limit);
                 info!("{}", &ok_msg);
@@ -35,13 +36,19 @@ impl Limiter {
 
 pub async fn daemon() -> Result<(), Box<dyn Error>> {
     if check_battery_support().await {
+        info!("Loading config file.");
+        let config = read_config_file().await;
+
         let _connection = ConnectionBuilder::session()?
             .name(CONNECTION_NAME)?
             .serve_at(DBUS_INTERFACE, Limiter)?
             .build()
             .await?;
 
-        battery_status_watcher().await;
+        change_battery_limit(&config).await?;
+        info!("🫡 Waiting for a signal to change battery limit.");
+        pending::<()>().await;
+
     } else {
         error!("This computer doesn't support setting battery charging limit.")
     }
