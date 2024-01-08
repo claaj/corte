@@ -1,5 +1,5 @@
 mod cli;
-mod menu;
+mod tui;
 mod daemon;
 mod config;
 mod client;
@@ -7,7 +7,7 @@ mod gui;
 mod battery;
 
 use crate::cli::cli::*;
-use crate::menu::menu::cli_menu;
+use crate::tui::menu:: tui;
 use crate::daemon::daemon::daemon;
 use crate::gui::gui::gui;
 use clap::{arg, value_parser, command};
@@ -32,12 +32,12 @@ fn main() {
         .get_matches();
 
     match matches.get_one::<Mode>("MODE").unwrap() {
-        Mode::Cli => cli_menu(),
+        Mode::Tui => tui(),
         Mode::Gui => gui(),
         Mode::Daemon => rt.block_on(
             async {
                 match daemon().await {
-                    Err(..) => error!("Couldn't start corte daemon mode."),
+                    Err(e) => error!("Couldn't start corte daemon mode. {}.", e.to_string()),
                     _ => {}
                 }
             }
@@ -47,6 +47,6 @@ fn main() {
 
 #[cfg(not(target_os = "linux"))]
 fn main() {
-    println!("This program is design to run on Linux 🐧.");
+    println!("This program is designed to run on Linux 🐧.");
 }
 

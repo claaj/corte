@@ -2,7 +2,7 @@ use menu_rs::*;
 use crate::battery::mode::BatteryMode;
 use crate::client::client::connection;
 
-pub fn cli_menu() {
+pub fn tui() {
     let menu = Menu::new(vec![
         MenuOption::new("Maximum lifespan mode", || connection_and_print(BatteryMode::Lifespan))
             .hint("Charging limit at 60%."),

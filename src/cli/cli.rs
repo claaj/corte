@@ -5,20 +5,20 @@ use clap::builder::PossibleValue;
 #[derive(Copy, Clone, Debug)]
 pub enum Mode {
     Daemon,
-    Cli,
+    Tui,
     Gui
 }
 
 impl ValueEnum for Mode {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Mode::Daemon, Mode::Cli, Mode::Gui]
+        &[Mode::Daemon, Mode::Tui, Mode::Gui]
     }
 
     fn to_possible_value(&self) -> Option<PossibleValue> {
         Some(match self {
             Mode::Daemon => PossibleValue::new("daemon").help("Run daemon."),
-            Mode::Cli => PossibleValue::new("cli").help("Run cli menu."),
-            Mode::Gui => PossibleValue::new("gui").help("Run gui menu.")
+            Mode::Tui => PossibleValue::new("tui").help("Run a tui menu."),
+            Mode::Gui => PossibleValue::new("gui").help("Open a gui app.")
         })
     }
 }
