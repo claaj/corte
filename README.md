@@ -8,7 +8,7 @@ Program to control battery charge threshold for ASUS laptops using Linux and tri
 Clone the repo and run:
 
 ```
-just build && sudo just install
+just build && just install
 ```
 
 This will:
@@ -20,7 +20,7 @@ This will:
 Just run:
 
 ```
-sudo just uninstall
+just uninstall
 ```
 This will remove the binary, the tmpfile.d config file and the systemd service. 
 
