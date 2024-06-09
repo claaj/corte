@@ -1,4 +1,4 @@
-use std::error::Error;
+use crate::error::Result;
 use std::future::pending;
 use log::{error, info};
 use zbus::{ConnectionBuilder, dbus_interface};
@@ -34,7 +34,7 @@ impl Limiter {
     }
 }
 
-pub async fn daemon() -> Result<(), Box<dyn Error>> {
+pub async fn daemon() -> Result<()> {
     if check_battery_support().await {
         info!("Loading config file.");
         let config = read_config_file().await;

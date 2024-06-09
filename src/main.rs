@@ -5,6 +5,7 @@ mod config;
 mod client;
 mod gui;
 mod battery;
+mod error;
 
 use crate::cli::cli::*;
 use crate::tui::menu:: tui;

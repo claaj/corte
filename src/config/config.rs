@@ -1,4 +1,4 @@
-use std::error::Error;
+use crate::error::Result;
 use tokio::fs;
 use tokio::fs::File;
 use std::path::PathBuf;
@@ -81,7 +81,8 @@ async fn create_default_file() -> String {
     }
 }
 
-pub async fn write_config_file(config_file_path: &PathBuf, toml_content: &String) -> Result<(), Box<dyn Error>> {
+pub async fn write_config_file(config_file_path: &PathBuf, toml_content: &String) -> Result<()> {
+
     info!("Writing config file.");
     fs::create_dir_all(config_file_path.parent().unwrap()).await?;
     let mut config_file = File::create(config_file_path).await?;
